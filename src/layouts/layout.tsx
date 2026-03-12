@@ -1,14 +1,15 @@
-import { Link, NavLink, Outlet } from "react-router";
+import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Menu, X } from "lucide-react";
-import { authClient } from "../lib/auth-client";
+import { logout } from "../lib/auth-api";
+import { useSession } from "../hooks/use-session";
 
 export default function Layout() {
-  const { data, isPending, error } = authClient.useSession();
-  console.log("data:", data);
+  const { data: session, isPending, error } = useSession();
   const queryClient = useQueryClient();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="flex min-h-screen flex-col text-slate-900 text-[16px] sm:text-[17px] leading-relaxed overflow-x-hidden">
@@ -39,7 +40,7 @@ export default function Layout() {
               Home
             </NavLink>
 
-            {data ? (
+            {session?.isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <NavLink
                   to="/app/my-plans"
@@ -70,9 +71,13 @@ export default function Layout() {
                 </NavLink>
 
                 <button
-                  onClick={() => {
-                    queryClient.clear();
-                    authClient.signOut();
+                  onClick={async () => {
+                    try {
+                      await logout();
+                      navigate("/");
+                    } finally {
+                      queryClient.clear();
+                    }
                   }}
                   className="relative inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-100 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-emerald-800 shadow-sm shadow-emerald-300/40 transition hover:border-emerald-500 hover:bg-emerald-200 hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 cursor-pointer"
                 >
@@ -125,7 +130,7 @@ export default function Layout() {
                 Home
               </NavLink>
 
-              {data ? (
+              {session?.isAuthenticated ? (
                 <>
                   <NavLink
                     to="/app/my-plans"
@@ -159,10 +164,13 @@ export default function Layout() {
 
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setIsMobileMenuOpen(false);
-                      queryClient.clear();
-                      authClient.signOut();
+                      try {
+                        await logout();
+                      } finally {
+                        queryClient.clear();
+                      }
                     }}
                     className="mt-1 inline-flex items-center justify-center rounded-full border border-emerald-500/60 bg-emerald-100 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.22em] text-emerald-800 shadow-sm shadow-emerald-300/40 hover:bg-emerald-200 hover:text-emerald-900"
                   >

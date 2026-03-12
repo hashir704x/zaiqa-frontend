@@ -1,14 +1,18 @@
-import { authClient } from "../lib/auth-client";
 import { toast } from "sonner";
 import { Link, Navigate, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Spinner } from "../components/spinner";
+import { login } from "../lib/auth-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSession } from "../hooks/use-session";
 
 export default function Login() {
-  const { data, isPending, error } = authClient.useSession();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { data: session, isPending, error } = useSession();
+
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-emerald-50 text-slate-700">
@@ -17,16 +21,8 @@ export default function Login() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-emerald-50 text-red-500">
-        <p className="text-sm">Something went wrong: {error.message}</p>
-      </div>
-    );
-  }
-
-  if (data?.session) {
-    return <Navigate to="/" />;
+  if (!error && session?.isAuthenticated) {
+    return <Navigate to="/app/my-plans" />;
   }
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
@@ -45,25 +41,17 @@ export default function Login() {
         toast.error("Password must be at least 8 characters long");
         return;
       }
-      await authClient.signIn.email(
-        { email: email, password: password },
-        {
-          onRequest: () => {
-            setIsLoading(true);
-          },
-          onSuccess: () => {
-            setIsLoading(false);
-            toast.success("Logged in successfully");
-            navigate("/app/my-plans");
-          },
-          onError: (ctx) => {
-            setIsLoading(false);
-            toast.error(ctx.error.message || "Something went wrong during login.");
-          },
-        },
-      );
+      setIsLoading(true);
+      await login(email, password);
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      toast.success("Logged in successfully");
+      navigate("/app/my-plans");
     } catch (error) {
-      toast.error("Something went wrong during login.");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong during login.";
+      toast.error(message);
       console.error(error);
     }
   };

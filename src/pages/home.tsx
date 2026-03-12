@@ -1,10 +1,10 @@
 import { Link } from "react-router";
 import { motion } from "motion/react";
 import { ChefHat, Soup, UtensilsCrossed } from "lucide-react";
-import { authClient } from "../lib/auth-client";
+import { useSession } from "../hooks/use-session";
 
 export default function Home() {
-  const { data } = authClient.useSession();
+  const { data } = useSession();
   return (
     <div className="relative isolate bg-white overflow-hidden">
       {/* Background gradients */}
@@ -66,7 +66,7 @@ export default function Home() {
             transition={{ duration: 0.4, delay: 0.32 }}
           >
             <Link
-              to={data ? "/app/my-plans" : "/login"}
+              to={data?.isAuthenticated ? "/app/my-plans" : "/login"}
               className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-300 via-lime-200 to-emerald-400 px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-lg shadow-emerald-200/60 transition hover:from-emerald-200 hover:via-lime-100 hover:to-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/80"
             >
               <span className="absolute inset-0 translate-y-[120%] bg-gradient-to-r from-white/10 via-white/40 to-white/10 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100" />

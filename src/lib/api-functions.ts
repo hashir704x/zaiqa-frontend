@@ -13,6 +13,45 @@ type GetAllPlansResponse = {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+async function fetchJson<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    credentials: "include",
+    ...options,
+    headers: {
+      Accept: "application/json",
+      ...(options.headers ?? {}),
+    },
+  });
+
+  let body: any = null;
+  const contentType = response.headers.get("Content-Type") ?? "";
+  if (contentType.includes("application/json")) {
+    body = await response.json().catch(() => null);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Unauthorized");
+    }
+    if (response.status === 404) {
+      const message =
+        body?.message ?? body?.error ?? "Resource not found.";
+      throw new Error(message);
+    }
+
+    const message =
+      body?.message ??
+      body?.error ??
+      `Request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  return body as T;
+}
+
 export type CreateMealPlanPayload = {
   title: string;
   cuisine: MealPlanSummary["cuisine"];
@@ -75,88 +114,33 @@ export type MealPlanDetails = {
   }[];
 };
 
-// Step 1: Call the backend
-// Step 2: Check for errors
-// Step 3: Parse JSON and return plans array
 export async function getAllPlans(): Promise<MealPlanSummary[]> {
-  // Step 1: Make the request
-  const response = await fetch(`${API_URL}/api/meal-plans`, {
+  const data = await fetchJson<GetAllPlansResponse>("/api/meal-plans", {
     method: "GET",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-    },
   });
-
-  // Step 2: Handle non-OK responses
-  if (!response.ok) {
-    throw new Error(`Failed to load meal plans (status ${response.status})`);
-  }
-
-  // Step 3: Read and return the data
-  const data: GetAllPlansResponse = await response.json();
   return data.plans;
 }
 
 export async function createPlan(payload: CreateMealPlanPayload) {
-  const response = await fetch(`${API_URL}/api/meal-plans`, {
+  return fetchJson("/api/meal-plans", {
     method: "POST",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      Accept: "application/json",
     },
     body: JSON.stringify(payload),
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to create meal plan (status ${response.status})`);
-  }
-
-  // We don't need strong typing for the full plan shape here yet,
-  // so return whatever the backend sends.
-  return response.json();
 }
 
 export async function getPlanDetailsById(id: string): Promise<MealPlanDetails> {
-  const response = await fetch(`${API_URL}/api/meal-plans/${id}`, {
+  return fetchJson<MealPlanDetails>(`/api/meal-plans/${id}`, {
     method: "GET",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-    },
   });
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("Plan not found.");
-    }
-    throw new Error(`Failed to load meal plan (status ${response.status})`);
-  }
-
-  const data: MealPlanDetails = await response.json();
-  return data;
 }
 
 export async function deletePlan(id: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/meal-plans/${id}`, {
+  await fetchJson<void>(`/api/meal-plans/${id}`, {
     method: "DELETE",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-    },
   });
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("Plan not found.");
-    }
-    const body = await response.json().catch(() => ({}));
-    const message =
-      (body as { message?: string })?.message ??
-      `Failed to delete meal plan (status ${response.status})`;
-    throw new Error(message);
-  }
 }
 
 export type MealPlanEntry = MealPlanDetails["days"][number]["entries"][number];
@@ -169,28 +153,10 @@ export async function replaceMealEntry(
   planId: string,
   entryId: string,
 ): Promise<ReplaceMealEntryResponse> {
-  const response = await fetch(
-    `${API_URL}/api/meal-plans/${planId}/entries/${entryId}`,
+  return fetchJson<ReplaceMealEntryResponse>(
+    `/api/meal-plans/${planId}/entries/${entryId}`,
     {
       method: "PATCH",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-      },
     },
   );
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("Plan or entry not found.");
-    }
-    const body = await response.json().catch(() => ({}));
-    const message =
-      (body as { message?: string })?.message ??
-      `Failed to replace meal (status ${response.status})`;
-    throw new Error(message);
-  }
-
-  const data: ReplaceMealEntryResponse = await response.json();
-  return data;
 }

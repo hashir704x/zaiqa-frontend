@@ -1,27 +1,27 @@
-import {  Navigate, Outlet } from "react-router";
-import { authClient } from "../lib/auth-client";
+import { Navigate, Outlet } from "react-router";
+import { useSession } from "../hooks/use-session";
 
 export default function ProtectedLayout() {
-  const { data, isPending, error } = authClient.useSession();
+  const { data: session, isPending, error } = useSession();
 
   if (isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-200">
-        <span className="text-sm text-slate-400">Loading your kitchen…</span>
+      <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">
+        <span className="text-sm text-slate-500">Loading your kitchen…</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-red-400">
+      <div className="flex min-h-screen items-center justify-center bg-white text-red-500">
         <p className="text-sm">Something went wrong: {error.message}</p>
       </div>
     );
   }
 
-  if (!data?.session) {
-    return <Navigate to="/" />;
+  if (!session?.isAuthenticated) {
+    return <Navigate to="/login" />;
   }
   return <Outlet />;
 }

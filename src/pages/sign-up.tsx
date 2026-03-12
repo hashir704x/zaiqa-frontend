@@ -1,13 +1,16 @@
-import { authClient } from "../lib/auth-client";
 import { toast } from "sonner";
 import { Link, Navigate, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Spinner } from "../components/spinner";
+import { register } from "../lib/auth-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSession } from "../hooks/use-session";
 export default function SignUp() {
-  const { data, isPending, error } = authClient.useSession();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { data: session, isPending, error } = useSession();
 
   if (isPending) {
     return (
@@ -17,17 +20,10 @@ export default function SignUp() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-emerald-50 text-red-500">
-        <p className="text-sm">Something went wrong: {error.message}</p>
-      </div>
-    );
+  if (!error && session?.isAuthenticated) {
+    return <Navigate to="/app/my-plans" />;
   }
 
-  if (data?.session) {
-    return <Navigate to="/" />;
-  }
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,26 +46,17 @@ export default function SignUp() {
         toast.error("Password must be at least 8 characters long");
         return;
       }
-      await authClient.signUp.email(
-        { name: name, email: email, password: password },
-        {
-          onRequest: () => {
-            setIsLoading(true);
-          },
-          onSuccess: () => {
-            setIsLoading(false);
-            toast.success("Account created successfully");
-            navigate("/app/my-plans");
-          },
-          onError: (ctx) => {
-            ctx.error.message;
-            setIsLoading(false);
-            toast.error(ctx.error.message || "Something went wrong during sign up.");
-          },
-        },
-      );
+      setIsLoading(true);
+      await register(name, email, password);
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      toast.success("Account created successfully");
+      navigate("/app/my-plans");
     } catch (error) {
-      toast.error("Something went wrong during sign up.");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong during sign up.";
+      toast.error(message);
       console.error(error);
     }
   };
