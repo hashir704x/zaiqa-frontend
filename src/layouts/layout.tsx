@@ -6,6 +6,7 @@ import { authClient } from "../lib/auth-client";
 
 export default function Layout() {
   const { data, isPending, error } = authClient.useSession();
+  console.log("data:", data);
   const queryClient = useQueryClient();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
