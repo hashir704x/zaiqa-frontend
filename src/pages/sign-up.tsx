@@ -3,14 +3,13 @@ import { Link, Navigate, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Spinner } from "../components/spinner";
-import { register } from "../lib/auth-api";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSession } from "../hooks/use-session";
+import { authClient } from "../lib/auth-client";
 export default function SignUp() {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { data: session, isPending, error } = useSession();
+  const { data, isPending, error } = authClient.useSession();
 
   if (isPending) {
     return (
@@ -20,10 +19,9 @@ export default function SignUp() {
     );
   }
 
-  if (!error && session?.isAuthenticated) {
+  if (!error && data) {
     return <Navigate to="/app/my-plans" />;
   }
-
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,11 +44,29 @@ export default function SignUp() {
         toast.error("Password must be at least 8 characters long");
         return;
       }
-      setIsLoading(true);
-      await register(name, email, password);
-      queryClient.invalidateQueries({ queryKey: ["session"] });
-      toast.success("Account created successfully");
-      navigate("/app/my-plans");
+      await authClient.signUp.email({
+        name,
+        email,
+        password,
+        callbackURL: "/app/my-plans",
+      },
+      {
+        onRequest: () => {
+          setIsLoading(true);
+        },
+        onSuccess: () => {
+          queryClient.invalidateQueries();
+          setIsLoading(false);
+          toast.success("Account created successfully");
+          navigate("/app/my-plans");
+        },
+        onError: (ctx) => {
+          setIsLoading(false);
+          toast.error(ctx.error.message);
+          console.error(error);
+        },
+      });
+     
     } catch (error) {
       const message =
         error instanceof Error

@@ -1,10 +1,10 @@
 import { Link } from "react-router";
 import { motion } from "motion/react";
 import { ChefHat, Soup, UtensilsCrossed } from "lucide-react";
-import { useSession } from "../hooks/use-session";
+import { authClient } from "../lib/auth-client";
 
 export default function Home() {
-  const { data } = useSession();
+  const { data } = authClient.useSession();
   return (
     <div className="relative isolate bg-white overflow-hidden">
       {/* Background gradients */}
@@ -13,13 +13,8 @@ export default function Home() {
         animate={{ y: [0, 18, 0], x: [0, 12, 0] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
-      <motion.div
-        className="pointer-events-none absolute bottom-[-18rem] right-[-14rem] h-[22rem] w-[22rem] rounded-full bg-gradient-to-tr from-lime-200/40 via-emerald-100/30 to-emerald-50/20 blur-3xl opacity-60"
-      />
-      <motion.div
-        className="pointer-events-none absolute inset-x-[-10rem] top-1/2 h-72 bg-gradient-to-r from-emerald-100/50 via-lime-50/40 to-emerald-100/50 blur-3xl opacity-50"
-      />
-    
+      <motion.div className="pointer-events-none absolute bottom-[-18rem] right-[-14rem] h-[22rem] w-[22rem] rounded-full bg-gradient-to-tr from-lime-200/40 via-emerald-100/30 to-emerald-50/20 blur-3xl opacity-60" />
+      <motion.div className="pointer-events-none absolute inset-x-[-10rem] top-1/2 h-72 bg-gradient-to-r from-emerald-100/50 via-lime-50/40 to-emerald-100/50 blur-3xl opacity-50" />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-6xl flex-col items-center justify-center gap-12 px-4 py-10 lg:flex-row lg:px-8 lg:py-16">
         {/* Hero copy */}
@@ -66,7 +61,7 @@ export default function Home() {
             transition={{ duration: 0.4, delay: 0.32 }}
           >
             <Link
-              to={data?.isAuthenticated ? "/app/my-plans" : "/login"}
+              to={data ? "/app/my-plans" : "/login"}
               className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-300 via-lime-200 to-emerald-400 px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-lg shadow-emerald-200/60 transition hover:from-emerald-200 hover:via-lime-100 hover:to-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/80"
             >
               <span className="absolute inset-0 translate-y-[120%] bg-gradient-to-r from-white/10 via-white/40 to-white/10 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100" />
@@ -76,8 +71,6 @@ export default function Home() {
                 <span className="text-[11px] text-slate-900/80">→</span>
               </span>
             </Link>
-
-           
           </motion.div>
 
           <motion.dl
@@ -129,7 +122,6 @@ export default function Home() {
                 <p className="text-[14px] font-medium uppercase tracking-[0.2em] text-emerald-600">
                   Sample plan
                 </p>
-              
               </div>
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-[12px] font-medium text-emerald-700">
                 Ai powered

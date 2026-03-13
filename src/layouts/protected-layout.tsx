@@ -1,8 +1,8 @@
 import { Navigate, Outlet } from "react-router";
-import { useSession } from "../hooks/use-session";
+import { authClient } from "../lib/auth-client";
 
 export default function ProtectedLayout() {
-  const { data: session, isPending, error } = useSession();
+  const { data, isPending, error } = authClient.useSession();
 
   if (isPending) {
     return (
@@ -20,7 +20,7 @@ export default function ProtectedLayout() {
     );
   }
 
-  if (!session?.isAuthenticated) {
+  if (!data) {
     return <Navigate to="/login" />;
   }
   return <Outlet />;

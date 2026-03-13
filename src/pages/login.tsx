@@ -3,15 +3,14 @@ import { Link, Navigate, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Spinner } from "../components/spinner";
-import { login } from "../lib/auth-api";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSession } from "../hooks/use-session";
+import { authClient } from "../lib/auth-client";
 
 export default function Login() {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { data: session, isPending, error } = useSession();
+  const { data, error, isPending } = authClient.useSession();
 
   if (isPending) {
     return (
@@ -21,7 +20,7 @@ export default function Login() {
     );
   }
 
-  if (!error && session?.isAuthenticated) {
+  if (error && data) {
     return <Navigate to="/app/my-plans" />;
   }
 
@@ -41,11 +40,25 @@ export default function Login() {
         toast.error("Password must be at least 8 characters long");
         return;
       }
-      setIsLoading(true);
-      await login(email, password);
-      queryClient.invalidateQueries({ queryKey: ["session"] });
-      toast.success("Logged in successfully");
-      navigate("/app/my-plans");
+      await authClient.signIn.email(
+        { email, password, callbackURL: "/app/my-plans" },
+        {
+          onRequest: () => {
+            setIsLoading(true);
+          },
+          onSuccess: () => {
+            setIsLoading(false);
+            queryClient.invalidateQueries();
+            toast.success("Logged in successfully");
+            navigate("/app/my-plans");
+          },
+          onError: (ctx) => {
+            setIsLoading(false);
+            toast.error(ctx.error.message);
+            console.error(error);
+          },
+        },
+      );
     } catch (error) {
       const message =
         error instanceof Error
@@ -117,13 +130,13 @@ export default function Login() {
               "Day-wise meal breakdown with calories & macros.",
               "Save and revisit your favorite meal plans anytime.",
             ].map((item, index) => (
-                <motion.li
+              <motion.li
                 key={item}
                 className="flex items-start gap-2 rounded-xl border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-100/70 backdrop-blur-sm"
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.35 + index * 0.06 }}
-                >
+              >
                 <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-lime-300 text-[10px] font-semibold text-emerald-950 shadow-sm">
                   ✓
                 </span>
@@ -140,7 +153,7 @@ export default function Login() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.25 }}
           whileHover={{ y: -4 }}
-          >
+        >
           <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-emerald-200/40 via-emerald-100/40 to-emerald-200/70 opacity-90 blur-xl" />
           <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-white p-6 shadow-xl shadow-emerald-100/80 backdrop-blur-xl sm:p-8">
             <div className="mb-6 flex items-center justify-between gap-4">
